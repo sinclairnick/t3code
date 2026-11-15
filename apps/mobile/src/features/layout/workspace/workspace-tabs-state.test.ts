@@ -63,7 +63,12 @@ describe("workspace root navigation", () => {
   });
 
   it("keeps the registered defaults while customization is unavailable", () => {
-    expect(resolveWorkspaceTabOrder(undefined)).toEqual(["threads", "pullRequests", "usage"]);
+    expect(resolveWorkspaceTabOrder(undefined)).toEqual([
+      "threads",
+      "pullRequests",
+      "issues",
+      "usage",
+    ]);
     expect(resolveWorkspaceTabOrder(["home", "usage", "issues", "threads"])).toEqual(
       resolveWorkspaceTabOrder(undefined),
     );
@@ -213,7 +218,13 @@ vi.mock("../AdaptiveWorkspaceLayout", () => ({
     startNewTask: () => undefined,
   }),
 }));
-vi.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
+vi.mock("@react-navigation/native", () => ({
+  useIsFocused: () => true,
+  useNavigation: () => ({ navigate: () => undefined }),
+}));
+vi.mock("../../home/AndroidHomeFab", () => ({
+  AndroidHomeFabLayout: (props: { readonly children: unknown }) => props.children,
+}));
 vi.mock("../adaptive-workspace-context", () => ({
   useAdaptiveWorkspaceLayout: () => ({ openWorkspaceTab: mocks.openWorkspaceTab }),
 }));
@@ -245,7 +256,8 @@ vi.mock("../../pull-requests/PullRequestFilterMenuContext", () => ({
     createElement("div", null, children),
 }));
 vi.mock("../../pull-requests/PullRequestsScreen", () => ({ PullRequestsScreen: () => null }));
-vi.mock("./PullRequestToolbar.android", () => ({ PullRequestToolbar: () => null }));
+vi.mock("../../issues/IssuesScreen", () => ({ IssuesScreen: () => null }));
+vi.mock("./ListSearchToolbar.android", () => ({ ListSearchToolbar: () => null }));
 vi.mock("./AndroidWorkspaceNavigation", () => ({
   AndroidWorkspaceNavigation: () => null,
   FloatingWorkspaceTabs: () => null,

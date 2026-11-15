@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 export function AndroidHomeFabLayout(props: {
   readonly onStartNewTask: () => void;
+  /** Names the button when it starts something other than a thread. */
+  readonly label?: string;
   readonly children: ReactNode;
   readonly sidebar?: boolean;
   readonly disabled?: boolean;

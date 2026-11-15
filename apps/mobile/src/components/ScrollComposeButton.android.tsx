@@ -17,6 +17,8 @@ import { resolveScaledTextRole } from "../lib/appearancePreferences";
 export function ScrollComposeButton(props: {
   readonly expanded: boolean;
   readonly onPress: () => void;
+  /** What the button starts; "New thread" unless said. */
+  readonly label?: string;
   readonly size?: number;
   readonly className?: string;
   readonly style?: StyleProp<ViewStyle>;
@@ -25,6 +27,7 @@ export function ScrollComposeButton(props: {
   const typography = resolveScaledTextRole("footnote", appearance.baseFontSize);
   const { iconSize, fabSize: scaledFabSize } = useAndroidControlSizing();
   const fabSize = props.size ?? scaledFabSize;
+  const label = props.label ?? "New thread";
   const nativeSize = Math.max(56, fabSize);
   const scale = fabSize / nativeSize;
   const nativeIconSize = Math.round(iconSize / scale);
@@ -79,7 +82,7 @@ export function ScrollComposeButton(props: {
                     fontWeight: "500",
                   }}
                 >
-                  New thread
+                  {label}
                 </Text>
               </ExtendedFloatingActionButton.Text>
             </ExtendedFloatingActionButton>
@@ -90,7 +93,7 @@ export function ScrollComposeButton(props: {
       <Pressable
         onPress={props.onPress}
         accessibilityRole="button"
-        accessibilityLabel="New thread"
+        accessibilityLabel={label}
         android_ripple={{ foreground: true }}
         style={{
           position: "absolute",

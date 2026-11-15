@@ -3,6 +3,7 @@ import { WorkspaceNoTabs } from "./WorkspaceNoTabs";
 import { useEnabledNavigationTabs } from "./navigation-tabs";
 import { NAVIGATION_TAB_ORDER } from "./navigation-tab-order";
 import { WorkspaceExtraTab } from "./WorkspaceExtraTab";
+import { useNavigation } from "@react-navigation/native";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,9 +12,11 @@ import { AppBar } from "../../../components/ui/AppBar";
 import { WorkspaceEmptyDetail } from "../WorkspaceEmptyDetail";
 import { ScreenContent } from "../../../components/ui/ScreenContent";
 import { useAndroidControlSizing } from "../../../components/ui/useAndroidControlSizing";
+import { AndroidHomeFabLayout } from "../../home/AndroidHomeFab";
 import { HomeRouteScreen } from "../../home/HomeRouteScreen";
 import { PullRequestsScreen } from "../../pull-requests/PullRequestsScreen";
-import { PullRequestToolbar } from "./PullRequestToolbar.android";
+import { ListSearchToolbar } from "./ListSearchToolbar.android";
+import { IssuesScreen } from "../../issues/IssuesScreen";
 import { useAdaptiveWorkspaceLayout } from "../AdaptiveWorkspaceLayout";
 import { WorkspaceSettledContentWidthContext } from "../workspace-content-width";
 import { AndroidWorkspaceNavigation, FloatingWorkspaceTabs } from "./AndroidWorkspaceNavigation";
@@ -36,6 +39,7 @@ export function WorkspaceRootScreen() {
 function WorkspaceRoot() {
   const floatingTabsEnabled = useAndroidFloatingTabs();
   const { layout, startNewTask, workspacePageWidth } = useAdaptiveWorkspaceLayout();
+  const navigation = useNavigation();
   const workspace = useWorkspaceTabs()!;
   const enabled = useEnabledNavigationTabs();
   const insets = useSafeAreaInsets();
@@ -46,7 +50,7 @@ function WorkspaceRoot() {
       ? workspace.bottomClearance
       : floatingTabsEnabled
         ? insets.bottom + FLOATING_TABS.bottom + FLOATING_TABS.edge + fabSize
-        : workspace.state.selectedTab === "threads"
+        : workspace.state.selectedTab === "threads" || workspace.state.selectedTab === "issues"
           ? fabClearance + 16
           : 16,
   };
@@ -95,21 +99,35 @@ function WorkspaceRoot() {
                 renderTab={(tab) =>
                   tab === "threads" ? (
                     <HomeRouteScreen />
-                  ) : tab !== "pullRequests" ? (
+                  ) : tab === "usage" ? (
                     <WorkspacePageFrame width={workspacePageWidth ?? null}>
                       <WorkspaceExtraTab tab={tab} />
                     </WorkspacePageFrame>
                   ) : layout.usesSplitView ? (
                     <>
                       <NativeStackScreenOptions options={{ headerShown: false }} />
-                      <AppBar embedded title="Pull requests" />
-                      <WorkspaceEmptyDetail tab="pullRequests" />
+                      <AppBar embedded title={tab === "issues" ? "Issues" : "Pull requests"} />
+                      <WorkspaceEmptyDetail tab={tab} />
                     </>
+                  ) : tab === "issues" ? (
+                    <AndroidHomeFabLayout
+                      label="New issue"
+                      onStartNewTask={() => navigation.navigate("IssueCreate")}
+                    >
+                      <IssuesScreen
+                        renderFrame={(filters, list) => (
+                          <>
+                            <ListSearchToolbar tab="issues" filters={filters} />
+                            <ScreenContent>{list}</ScreenContent>
+                          </>
+                        )}
+                      />
+                    </AndroidHomeFabLayout>
                   ) : (
                     <PullRequestsScreen
                       renderFrame={(filters, list) => (
                         <>
-                          <PullRequestToolbar filters={filters} />
+                          <ListSearchToolbar tab="pullRequests" filters={filters} />
                           <ScreenContent>{list}</ScreenContent>
                         </>
                       )}

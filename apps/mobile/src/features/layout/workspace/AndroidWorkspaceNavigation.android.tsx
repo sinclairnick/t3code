@@ -153,7 +153,10 @@ export function AndroidWorkspaceNavigation(props: {
         }}
         onNewThread={() => {
           Keyboard.dismiss();
-          props.onNewThread();
+          // The rail's compose button starts whatever the list beside it holds.
+          if (workspace.state.selectedTab === "issues" && !workspace.settingsOpen)
+            navigation.navigate("IssueCreate");
+          else props.onNewThread();
         }}
         onOverlayChange={(event) => props.onOverlayChange?.(event.nativeEvent.overlay)}
         style={

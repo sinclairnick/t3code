@@ -68,6 +68,7 @@ export function AndroidHomeFabLayout(props: ComponentProps<typeof SharedAndroidH
       layoutWidth !== null ? (
         <ScrollComposeButton
           key={`${appearance.baseFontSize}:${fontScale}:${layoutWidth}`}
+          {...(props.label === undefined ? {} : { label: props.label })}
           size={size}
           expanded={floatingTabsEnabled ? false : expanded}
           onPress={props.onStartNewTask}
