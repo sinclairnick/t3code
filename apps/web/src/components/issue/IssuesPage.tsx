@@ -4,6 +4,7 @@ import {
   groupIssues,
   holdIssuePages,
   issueCreateScopes,
+  issueFilterScopes,
   issueTrackerKey,
   type HeldIssuePage,
 } from "@t3tools/client-runtime/issue-list";
@@ -12,6 +13,7 @@ import type {
   EnvironmentId,
   IssueInvolvement,
   IssueListInput,
+  IssueListSort,
   IssueListState,
   IssueTrackerKind,
   IssueTrackerSummary,
@@ -20,7 +22,9 @@ import type {
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   AtSignIcon,
+  CalendarArrowDownIcon,
   CircleCheckIcon,
+  ClockIcon,
   LayersIcon,
   PenLineIcon,
   Plug2Icon,
@@ -47,6 +51,7 @@ import {
   PullRequestSearchInput,
   type PullRequestFilterOption,
 } from "~/components/pullRequest/PullRequestListFilters";
+import { IssueAssigneeFilter, IssueLabelFilter } from "./IssueListFilterPickers";
 import { PullRequestsUnavailableState } from "~/components/pullRequest/PullRequestsUnavailableState";
 import { RightPanelTabs } from "~/components/RightPanelTabs";
 import { WorkspaceBreadcrumb, WorkspaceBreadcrumbItem } from "~/components/WorkspaceBreadcrumb";
@@ -109,6 +114,11 @@ const INVOLVEMENT_TABS = [
   { value: "mentioned", label: "Mentioning me", Icon: AtSignIcon },
 ] as const satisfies ReadonlyArray<PullRequestFilterOption<IssueInvolvement>>;
 
+const SORT_OPTIONS = [
+  { value: "updated", label: "Recently updated", Icon: ClockIcon },
+  { value: "created", label: "Newest", Icon: CalendarArrowDownIcon },
+] as const satisfies ReadonlyArray<PullRequestFilterOption<IssueListSort>>;
+
 const PAGE_SIZE = 50;
 const EMPTY_SET: ReadonlySet<string> = new Set();
 const EMPTY_RECORD = {} as const;
@@ -163,6 +173,9 @@ export function IssuesPage() {
     limit: PAGE_SIZE,
     ...(search.host ? { host: search.host } : {}),
     ...(debouncedQuery ? { query: debouncedQuery } : {}),
+    ...(search.label?.length ? { labels: search.label } : {}),
+    ...(search.assignee ? { assignee: search.assignee } : {}),
+    ...(search.order ? { sort: search.order } : {}),
   };
   const targets: ReadonlyArray<IssueListTarget> = capableEnvironments.map((e) => ({
     environmentId: e.environmentId,
@@ -202,7 +215,8 @@ export function IssuesPage() {
 
   // Rows grouped per tracker account, so a tracker that cannot be read says so where its rows
   // would be, and each tracker's rows carry on from their own cursors.
-  const groups = groupIssues(held, debouncedQuery, projects);
+  const groups = groupIssues(held, debouncedQuery, projects, search.order ?? "updated");
+  const filterScopes = issueFilterScopes(held, projects);
 
   const hostOptions = hostOptionsFor(groups);
 
@@ -213,6 +227,9 @@ export function IssuesPage() {
       status: merged.status ?? search.status,
       ...(merged.host ? { host: merged.host } : {}),
       q: merged.q || undefined,
+      ...(merged.label?.length ? { label: merged.label } : {}),
+      ...(merged.assignee ? { assignee: merged.assignee } : {}),
+      ...(merged.order ? { order: merged.order } : {}),
       ...(merged.selectedEnvironmentId
         ? { selectedEnvironmentId: merged.selectedEnvironmentId }
         : {}),
@@ -515,7 +532,7 @@ export function IssuesPage() {
           <div className="topbar-scroll-fade scrollbar-gutter-both min-h-0 flex-1 overflow-y-auto">
             <WorkspacePageContainer width="expanded" className="min-h-full gap-4">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="min-w-0 basis-full @lg/issue-list:basis-0 @lg/issue-list:flex-1">
+                <div className="min-w-0 basis-full @lg/issue-list:min-w-48 @lg/issue-list:basis-0 @lg/issue-list:flex-1">
                   <PullRequestSearchInput
                     value={search.q ?? ""}
                     label="Search issues"
@@ -549,6 +566,24 @@ export function IssuesPage() {
                   value={search.who}
                   options={INVOLVEMENT_TABS}
                   onChange={(who) => updateSearch({ who })}
+                />
+                <IssueLabelFilter
+                  scopes={filterScopes}
+                  value={search.label ?? []}
+                  onChange={(label) => updateSearch({ label })}
+                />
+                <IssueAssigneeFilter
+                  scopes={filterScopes}
+                  value={search.assignee}
+                  onChange={(assignee) => updateSearch({ assignee })}
+                />
+                <FilterMenu
+                  label="Sort"
+                  value={search.order ?? "updated"}
+                  options={SORT_OPTIONS}
+                  onChange={(order) =>
+                    updateSearch({ order: order === "created" ? "created" : undefined })
+                  }
                 />
                 {hostOptions.length > 2 ? (
                   <FilterMenu

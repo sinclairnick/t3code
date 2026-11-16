@@ -4,6 +4,7 @@ import type {
   IssueListEntry,
   IssueListProjectError,
   IssueListResult,
+  IssueListSort,
   IssueScopeRef,
   IssueTrackerSummary,
   SourceControlProviderKind,
@@ -79,10 +80,18 @@ export function continueIssuePage(
       };
 }
 
+/** Newest first by the date the trackers were asked to sort on, so merged rows keep that order. */
+export function issueOrder(sort: IssueListSort) {
+  const date = (issue: IssueListEntry) =>
+    Date.parse(sort === "created" ? issue.createdAt : issue.updatedAt);
+  return (left: IssueListEntry, right: IssueListEntry) => date(right) - date(left);
+}
+
 export function groupIssues(
   held: ReadonlyMap<EnvironmentId, HeldIssuePage>,
   query: string,
   projects: ReadonlyArray<EnvironmentProject>,
+  sort: IssueListSort = "updated",
 ) {
   const byTracker = new Map<
     string,
@@ -131,19 +140,18 @@ export function groupIssues(
       group?.errors.push({ ...error, environmentId });
     }
   }
-  for (const group of byTracker.values()) {
-    group.rows.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
-  }
+  for (const group of byTracker.values()) group.rows.sort(issueOrder(sort));
   return [...byTracker.values()].sort((a, b) =>
     issueTrackerKey(a.tracker).localeCompare(issueTrackerKey(b.tracker)),
   );
 }
 
-export function issueCreateScopes(
+/** Every tracker scope the listing can read, reached through the first project that has it. */
+function issueScopes(
   held: ReadonlyMap<EnvironmentId, HeldIssuePage>,
   projects: ReadonlyArray<EnvironmentProject>,
-): IssueCreateScope[] {
-  const scopes: IssueCreateScope[] = [];
+) {
+  const scopes: Array<IssueCreateScope & { readonly create: boolean }> = [];
   for (const [environmentId, page] of held) {
     for (const project of projects) {
       if (project.environmentId !== environmentId) continue;
@@ -155,7 +163,7 @@ export function issueCreateScopes(
       const tracker = page.answer.trackers.find(
         (t) => String(t.tracker) === kind && t.host.toLowerCase() === host.toLowerCase(),
       );
-      if (!tracker?.configured || tracker.capabilities?.create !== true) continue;
+      if (!tracker?.configured || tracker.capabilities === null) continue;
       if (
         scopes.some(
           (s) => s.scope.scope.toLowerCase() === scope.toLowerCase() && s.scope.host === host,
@@ -166,9 +174,28 @@ export function issueCreateScopes(
         environmentId,
         projectTitle: project.title,
         templates: tracker.capabilities.templates,
+        create: tracker.capabilities.create,
         scope: { projectId: project.id, tracker: tracker.tracker, host, scope },
       });
     }
   }
   return scopes;
+}
+
+export function issueCreateScopes(
+  held: ReadonlyMap<EnvironmentId, HeldIssuePage>,
+  projects: ReadonlyArray<EnvironmentProject>,
+): IssueCreateScope[] {
+  return issueScopes(held, projects).flatMap(({ create, ...scope }) => (create ? [scope] : []));
+}
+
+/** The scopes whose labels and people a list filter offers. */
+export function issueFilterScopes(
+  held: ReadonlyMap<EnvironmentId, HeldIssuePage>,
+  projects: ReadonlyArray<EnvironmentProject>,
+) {
+  return issueScopes(held, projects).map(({ environmentId, scope }) => ({
+    environmentId,
+    input: scope,
+  }));
 }

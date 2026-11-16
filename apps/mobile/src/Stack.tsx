@@ -41,6 +41,7 @@ import { IssueAssigneesScreen } from "./features/issues/IssueAssigneesScreen";
 import { IssueCreateScreen } from "./features/issues/IssueCreateScreen";
 import { IssueEditScreen } from "./features/issues/IssueEditScreen";
 import { IssueLabelsScreen } from "./features/issues/IssueLabelsScreen";
+import { IssueFilterSearchScreen } from "./features/issues/IssueFilterSearchScreen";
 import { IssueRouteScreen } from "./features/issues/IssueRouteScreen";
 import {
   RenderErrorBoundary,
@@ -572,6 +573,10 @@ const RootStackConfig = createWorkspaceStackNavigator({
     }),
     IssueAssignees: createNativeStackScreen({
       screen: IssueAssigneesScreen,
+      options: SEARCH_SHEET_ROUTE,
+    }),
+    IssueFilterSearch: createNativeStackScreen({
+      screen: IssueFilterSearchScreen,
       options: SEARCH_SHEET_ROUTE,
     }),
     IssueCreate: createNativeStackScreen({
